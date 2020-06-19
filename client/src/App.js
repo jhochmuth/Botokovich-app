@@ -5,18 +5,13 @@ import './App.css';
 class App extends Component {
   constructor(props) {
     super(props);
-    this.embed = null;
+    this.flatEmbed = null;
   }
 
   componentDidMount() {
-    /*
-    fetch('/api/verse/Genesis/1/1')
-      .then(r => r.json())
-      .then(data => this.setState({ text: data.text }));
-    */
     const container = document.getElementById('flat-container');
 
-    this.embed = new Embed(container, {
+    this.flatEmbed = new Embed(container, {
       score: '5eec27dee4645c2df0df0857',
       embedParams: {
         mode: 'edit',
@@ -26,15 +21,19 @@ class App extends Component {
     });
   }
 
-  createMidi() {
-
+  async getGeneratedMusic() {
+    let midi = await this.flatEmbed.getMIDI();
+    let midiString = midi.toString();
+    let response = await fetch('/generate/' + midiString);
+    response = await response.json();
+    console.log(response.data)
   }
 
   render() {
     return (
       <div className="App">
         <div id="flat-container" />
-        <button onClick={() => this.createMidi()}>Create midi</button>
+        <button onClick={() => this.getGeneratedMusic()}>Generate Music</button>
       </div>
     );
   }
