@@ -1,20 +1,3 @@
-from fastapi import Body, FastAPI
-from starlette.middleware.cors import CORSMiddleware
-
-
-app = FastAPI()
-
-
-# TODO: Change origin to real domain to reject Ajax requests from elsewhere
-app.add_middleware(CORSMiddleware, allow_origins=['*'])
-
-
-@app.post('/generate')
-def generate_music(xml: str = Body(...)):
-    seq = extract_note_encoding(xml)
-    return {'data': seq}
-
-
 import music21
 
 import py_midicsv as midi
@@ -73,9 +56,10 @@ def extract_notes_from_file(filename):
     return extract_note_values(midi_command_list)
 
 
-def extract_chord_encodingv2(xml, steps_per_quarter=12):
+def extract_chord_encodingv2(midi, steps_per_quarter=12):
     """Uses music21 library to extract chords at each timestep."""
-    stream = music21.converter.parse(xml, format='musicxml')
+    converter = music21.converter.Converter()
+    stream = converter.parseData(midi)
     time_steps = [list() for _ in range(int(stream.duration.quarterLength * steps_per_quarter))]
 
     for element in stream.recurse(classFilter=('Chord', 'Note')):
@@ -116,9 +100,9 @@ def extract_chord_encodingv2(xml, steps_per_quarter=12):
 
 
 # TODO: Check the effects of repeated notes. Important for ensemble pieces.
-def extract_note_encoding(xml):
+def extract_note_encoding(midi):
     """Function to extract notewise encoding. This version specifies when notes are stopped."""
-    chord_sequence = extract_chord_encodingv2(xml)
+    chord_sequence = extract_chord_encodingv2(midi)
     chord_sequence = chord_sequence.split(" ")
     note_sequence = ""
 
@@ -138,5 +122,3 @@ def extract_note_encoding(xml):
         note_sequence = "{} step".format(note_sequence)
 
     return note_sequence
-
-

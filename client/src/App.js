@@ -22,9 +22,11 @@ class App extends Component {
   }
 
   async getGeneratedMusic() {
-    let midi = await this.flatEmbed.getMIDI();
-    let midiString = midi.toString();
-    let response = await fetch('/generate/' + midiString);
+    let xml = await this.flatEmbed.getMusicXML();
+    let response = await fetch('/generate', {
+      method: 'POST',
+      body: JSON.stringify(xml)
+    });
     response = await response.json();
     console.log(response.data)
   }
