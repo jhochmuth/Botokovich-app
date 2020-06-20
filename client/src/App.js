@@ -16,12 +16,13 @@ class App extends Component {
       embedParams: {
         mode: 'edit',
         appId: '5ee199bd36e3a0440978997a',
-        controlsPosition: 'top'
+        controlsPosition: 'top',
+        parts: 'Piano'
       }
     });
   }
 
-  async getGeneratedMusic() {
+  async postMusicAndGenerate() {
     let xml = await this.flatEmbed.getMusicXML();
     let response = await fetch('/generate', {
       method: 'POST',
@@ -29,13 +30,14 @@ class App extends Component {
     });
     response = await response.json();
     console.log(response.data)
+    this.flatEmbed.loadMusicXML(response.data);
   }
 
   render() {
     return (
       <div className="App">
         <div id="flat-container" />
-        <button onClick={() => this.getGeneratedMusic()}>Generate Music</button>
+        <button onClick={() => this.postMusicAndGenerate()}>Generate Music</button>
       </div>
     );
   }

@@ -1,8 +1,18 @@
+from fastai.text import *
+
 from fastapi import Body, FastAPI
+
+import music21
+
+import numpy as np
+
 from starlette.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+
+
+learner = load_learner(path='../data/', file='models/exported_test_model.pkl')
 
 
 # TODO: Change origin to real domain to reject Ajax requests from elsewhere
@@ -12,65 +22,9 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'])
 @app.post('/generate')
 def generate_music(xml: str = Body(...)):
     seq = extract_note_encoding(xml)
-    return {'data': seq}
-
-
-import music21
-
-import py_midicsv as midi
-
-
-KEY_TRANSPOSITION_VALUES = {0: 0,
-                            1: 5,
-                            2: -2,
-                            3: 3,
-                            4: -4,
-                            5: 1,
-                            6: -6,
-                            -1: -5,
-                            -2: 2,
-                            -3: -3,
-                            -4: 4,
-                            -5: -1,
-                            -6: -3}
-
-
-def midi_command_formatting(command):
-    """Converts a string containing a midi command to an array."""
-    command = command.strip("\n")
-    command = command.split(", ")
-    return command
-
-
-def midi_to_csv(filename):
-    """Extracts all commands from a midi file and converts them to array format."""
-    csv = midi.midi_to_csv(filename)
-    return [midi_command_formatting(command) for command in csv]
-
-
-def get_transposition_value(midi_command_list):
-    transposition_value = None
-
-    for command in midi_command_list:
-        if command[2] == "Key_signature":
-            transposition_value = KEY_TRANSPOSITION_VALUES[int(command[3])]
-            break
-
-    if not transposition_value:
-        transposition_value = 0
-
-    return transposition_value
-
-
-def extract_note_values(midi_command_list):
-    transposition_value = get_transposition_value(midi_command_list)
-    return [int(command[4]) + transposition_value for command in midi_command_list
-            if command[2] == "Note_on_c" and int(command[5]) > 0 and int(command[3]) == 0]
-
-
-def extract_notes_from_file(filename):
-    midi_command_list = midi_to_csv(filename)
-    return extract_note_values(midi_command_list)
+    generated_seq = generate(learner, seq, 100)
+    generated_xml = convert_seq_to_xml(generated_seq)
+    return {'data': generated_xml}
 
 
 def extract_chord_encodingv2(xml, steps_per_quarter=12):
@@ -140,3 +94,68 @@ def extract_note_encoding(xml):
     return note_sequence
 
 
+def generate(learner, start, beats_length):
+    if not start.startswith('xxbox'):
+        start = "xxbos " + start
+    np.random.seed()
+    return learner.predict(start, n_words=beats_length * 12)
+
+
+def create_note(pitch, offset, duration):
+    duration = music21.duration.Duration(duration)
+    note = music21.note.Note(pitch, duration=duration)
+    note.offset = offset
+    return note
+
+
+def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
+    sequence = sequence.split(" ")
+    notes = list()
+    current_notes = list()
+    steps = 0
+
+    for element in sequence:
+        if element == "xxbos" or element == "":
+            continue
+
+        elif element == "step":
+            steps += 1
+            delete_notes = list()
+            for i, note in enumerate(current_notes):
+                note[2] += 1
+                if note[2] >= max_length / step_size:
+                    new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
+                    notes.append(new_note)
+                    delete_notes.append(note)
+            for note in delete_notes:
+                current_notes.remove(note)
+
+        elif "stop" in element:
+            pitch = int(element[4:])
+            current_pitches = [n[0] for n in current_notes]
+            if pitch in current_pitches:
+                index = current_pitches.index(pitch)
+                note = current_notes[index]
+                new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
+                notes.append(new_note)
+                del current_notes[index]
+
+        else:
+            try:
+                pitch = int(element)
+                offset_steps = steps
+                current_notes.append([pitch, offset_steps, 0])
+            except:
+                continue
+
+    for note in current_notes:
+        new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
+        notes.append(new_note)
+
+    piano = music21.instrument.fromString("Piano")
+    notes.insert(0, piano)
+    stream = music21.stream.Stream(notes)
+    exporter = music21.musicxml.m21ToXml.GeneralObjectExporter(stream)
+    generated = exporter.parse()
+    generated = generated.decode('utf-8')
+    return generated
