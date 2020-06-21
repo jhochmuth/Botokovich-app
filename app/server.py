@@ -12,7 +12,7 @@ from starlette.middleware.cors import CORSMiddleware
 app = FastAPI()
 
 
-learner = load_learner(path='../data/', file='models/exported_test_model.pkl')
+learner = load_learner(path='../data/', file='models/model.pkl')
 
 
 # TODO: Change origin to real domain to reject Ajax requests from elsewhere
@@ -108,6 +108,7 @@ def create_note(pitch, offset, duration):
     return note
 
 
+# Sometimes words like 'stop41stop41stop41' are generated.
 def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
     sequence = sequence.split(" ")
     notes = list()
@@ -131,15 +132,17 @@ def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
                 current_notes.remove(note)
 
         elif "stop" in element:
-            pitch = int(element[4:])
-            current_pitches = [n[0] for n in current_notes]
-            if pitch in current_pitches:
-                index = current_pitches.index(pitch)
-                note = current_notes[index]
-                new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
-                notes.append(new_note)
-                del current_notes[index]
-
+            try:
+                pitch = int(element[4:])
+                current_pitches = [n[0] for n in current_notes]
+                if pitch in current_pitches:
+                    index = current_pitches.index(pitch)
+                    note = current_notes[index]
+                    new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
+                    notes.append(new_note)
+                    del current_notes[index]
+            except:
+                continue
         else:
             try:
                 pitch = int(element)
@@ -155,7 +158,26 @@ def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
     piano = music21.instrument.fromString("Piano")
     notes.insert(0, piano)
     stream = music21.stream.Stream(notes)
+    """
+    import pygame
+    stream.write(fmt="midi", fp="blah.mid")
+    pygame.init()
+    pygame.mixer.music.load("blah.mid")
+    pygame.mixer.music.play()
+    while pygame.mixer.music.get_busy():
+        pygame.time.wait(1)
+    """
     exporter = music21.musicxml.m21ToXml.GeneralObjectExporter(stream)
-    generated = exporter.parse()
+    generated = exporter.parse(stream)
     generated = generated.decode('utf-8')
+
+    part_index = generated.index('</score-part>')
+    part_tags = """
+    <score-instrument id="1234567890">
+        <instrument-name>Piano</instrument-name>
+        <instrument-sound>Piano</instrument-sound>
+    </score-instrument>
+    """
+    generated = generated[:part_index] + part_tags + generated[part_index:]
+
     return generated
