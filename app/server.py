@@ -2,11 +2,37 @@ from fastai.text import *
 
 from fastapi import Body, FastAPI
 
+import flat_api
+from flat_api.rest import ApiException
+
 import music21
 
 import numpy as np
 
 from starlette.middleware.cors import CORSMiddleware
+
+# Code for authentication in Flat API if needed later.
+"""
+flat_config = flat_api.Configuration()
+flat_config.access_token = None
+flat_api_client = flat_api.ApiClient(flat_config)
+#flat_api_instance = flat_api.AccountApi(flat_api_client)
+score_api_instance = flat_api.ScoreApi(flat_api_client)
+"""
+
+# Code for creating a new score in Flat API if needed later.
+"""
+privacy = flat_api.ScorePrivacy()
+score_creation = flat_api.ScoreCreation(privacy='public',
+data=generated_mus)
+score_creation.title = 'New Generated Piece'
+
+try:
+api_response = score_api_instance.create_score(score_creation)
+print(api_response)
+except ApiException as e:
+print("Exception when calling ScoreApi->create_score: %s\n" % e)
+"""
 
 
 app = FastAPI()
@@ -20,11 +46,11 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
 
 @app.post('/generate')
-def generate_music(xml: str = Body(...)):
+def generate_music(xml: str = Body(...), length: int = Body(...)):
     seq = extract_note_encoding(xml)
-    generated_seq = generate(learner, seq, 100)
-    generated_xml = convert_seq_to_xml(generated_seq)
-    return {'data': generated_xml}
+    generated_seq = generate(learner, seq, length)
+    generated_mus = convert_seq_to_xml(generated_seq)
+    return {'data': generated_mus}
 
 
 def extract_chord_encodingv2(xml, steps_per_quarter=12):
@@ -94,11 +120,11 @@ def extract_note_encoding(xml):
     return note_sequence
 
 
-def generate(learner, start, beats_length):
+def generate(learner, start, measure_length):
     if not start.startswith('xxbox'):
         start = "xxbos " + start
     np.random.seed()
-    return learner.predict(start, n_words=beats_length * 12)
+    return learner.predict(start, n_words=measure_length * 48 - 12)
 
 
 def create_note(pitch, offset, duration):
@@ -108,12 +134,60 @@ def create_note(pitch, offset, duration):
     return note
 
 
+def notes_to_midi(notes):
+    piano = music21.instrument.fromString("Piano")
+    notes.insert(0, piano)
+    stream = music21.stream.Stream(notes)
+    stream.write(fmt="midi", fp="blah.mid")
+    midiFileObj = music21.midi.translate.streamToMidiFile(stream)
+    midi = midiFileObj.writestr()
+    midi = str(midi)
+    return midi
+
+
+def notes_to_mxml(part1, part2):
+    piano = music21.instrument.fromString("Piano")
+    part1.insert(0, piano)
+    part1 = music21.stream.Part(part1)
+    part2 = music21.stream.Part(part2)
+    stream = music21.stream.Stream()
+    stream.insert(0, part1)
+    stream.insert(0, part2)
+    stream.write(fmt="midi", fp="/Users/juliushochmuth/Downloads/test.mid")
+
+    exporter = music21.musicxml.m21ToXml.GeneralObjectExporter(stream)
+    generated = exporter.parse(stream)
+    generated = generated.decode('utf-8')
+
+    part_index = generated.index('</score-part>')
+    part_tags = """
+    <score-instrument id="1234567890">
+        <instrument-name>Piano</instrument-name>
+        <instrument-sound>Piano</instrument-sound>
+    </score-instrument>
+    """
+    part_tags2 = """
+    <score-instrument id="1234567">
+        <instrument-name>Piano</instrument-name>
+        <instrument-sound>Piano</instrument-sound>
+    </score-instrument>
+    """
+    generated = generated[:part_index] + part_tags + generated[part_index:]
+    part_index2 = generated.rindex('</score-part>')
+    generated = generated[:part_index2] + part_tags2 + generated[part_index2:]
+
+    return generated
+
+
 # Sometimes words like 'stop41stop41stop41' are generated.
-def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
+def convert_seq_to_xml(sequence, step_size=(1/8), max_length=2):
     sequence = sequence.split(" ")
     notes = list()
     current_notes = list()
     steps = 0
+
+    part1 = list()
+    part2 = list()
 
     for element in sequence:
         if element == "xxbos" or element == "":
@@ -127,6 +201,12 @@ def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
                 if note[2] >= max_length / step_size:
                     new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
                     notes.append(new_note)
+
+                    if new_note.pitches[0] <= music21.pitch.Pitch('C4'):
+                        part2.append(new_note)
+                    else:
+                        part1.append(new_note)
+
                     delete_notes.append(note)
             for note in delete_notes:
                 current_notes.remove(note)
@@ -140,6 +220,12 @@ def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
                     note = current_notes[index]
                     new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
                     notes.append(new_note)
+
+                    if new_note.pitches[0] <= music21.pitch.Pitch('C4'):
+                        part2.append(new_note)
+                    else:
+                        part1.append(new_note)
+
                     del current_notes[index]
             except:
                 continue
@@ -155,29 +241,10 @@ def convert_seq_to_xml(sequence, step_size=(1/4), max_length=2):
         new_note = create_note(note[0] + 36, note[1] * step_size, note[2] * step_size)
         notes.append(new_note)
 
-    piano = music21.instrument.fromString("Piano")
-    notes.insert(0, piano)
-    stream = music21.stream.Stream(notes)
-    """
-    import pygame
-    stream.write(fmt="midi", fp="blah.mid")
-    pygame.init()
-    pygame.mixer.music.load("blah.mid")
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        pygame.time.wait(1)
-    """
-    exporter = music21.musicxml.m21ToXml.GeneralObjectExporter(stream)
-    generated = exporter.parse(stream)
-    generated = generated.decode('utf-8')
+        if new_note.pitches[0] >= music21.pitch.Pitch('C4'):
+            part1.append(new_note)
+        else:
+            part2.append(new_note)
 
-    part_index = generated.index('</score-part>')
-    part_tags = """
-    <score-instrument id="1234567890">
-        <instrument-name>Piano</instrument-name>
-        <instrument-sound>Piano</instrument-sound>
-    </score-instrument>
-    """
-    generated = generated[:part_index] + part_tags + generated[part_index:]
-
-    return generated
+    return notes_to_mxml(part1, part2)
+    #return notes_to_midi(notes)

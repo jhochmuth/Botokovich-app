@@ -3,5 +3,12 @@ html, body, #root, .App {
 }
 
 #flat-container {
-  height: 80%;
+  height: 50%;
+}
+
+#settings-container {
+  position: fixed;
+  width: 40%;
+  margin-top: 2%;
+  left: 5%;
 }
