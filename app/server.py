@@ -47,6 +47,10 @@ app.add_middleware(CORSMiddleware, allow_origins=['*'])
 
 @app.post('/generate')
 def generate_music(xml: str = Body(...), length: int = Body(...)):
+    """Does all work to generate music using user input.
+       Converts musicxml-based user input to a notewise encoding.
+       Then uses this to seed the trained neural network.
+       Finally converts the generated sequence to musicxml and sends this to the client."""
     seq = extract_note_encoding(xml)
     generated_seq = generate(learner, seq, length)
     generated_mus = convert_seq_to_xml(generated_seq)
@@ -56,24 +60,32 @@ def generate_music(xml: str = Body(...), length: int = Body(...)):
 def extract_chord_encodingv2(xml, steps_per_quarter=12):
     """Uses music21 library to extract chords at each timestep."""
     stream = music21.converter.parse(xml, format='musicxml')
+    
+    # First create the list of timesteps which contains information about every note that is playing at that moment.
     time_steps = [list() for _ in range(int(stream.duration.quarterLength * steps_per_quarter))]
-
+    
+    # Iterate over all chords and notes.
     for element in stream.recurse(classFilter=('Chord', 'Note')):
         time = int(element.offset * steps_per_quarter)
         duration_steps = int(element.duration.quarterLength * steps_per_quarter)
-
+        
+        # Notes and chords must be treated differently.
         if isinstance(element, music21.note.Note):
             for duration in range(duration_steps):
+                # Stop if we have gone over the total number of time steps.
                 if time + duration > len(time_steps) - 1:
                     break
+                # Do nothing if this note is out of range.
                 elif element.pitch.ps < 36 or element.pitch.ps > 96:
                     continue
+                # If the duration of this note is 0, the note is ending
                 elif duration == 0:
                     time_steps[time + duration].append((int(element.pitch.ps), 1))
                 else:
                     time_steps[time + duration].append((int(element.pitch.ps), 2))
 
         elif isinstance(element, music21.chord.Chord):
+            # If there is a chord, we must individually iterate over all notes in that chord.
             for duration in range(duration_steps):
                 if time + duration > len(time_steps) - 1:
                     break
@@ -85,32 +97,42 @@ def extract_chord_encodingv2(xml, steps_per_quarter=12):
                     else:
                         time_steps[time + duration].append((int(note.ps), 2))
 
+    # We can now generate the list of chord sequences at every timesteps.
+    # Every timestep will be comprised of 61 digits. Each digit represents a note between C3 and C8.
+
     chord_sequence = list()
     for step in time_steps:
         chord = ["0" for _ in range(61)]
         for note in step:
             chord[note[0] - 36] = str(note[1])
         chord_sequence.append("".join(chord))
-    chord_sequence = " ".join(chord_sequence)
     return chord_sequence
 
 
 # TODO: Check the effects of repeated notes. Important for ensemble pieces.
+# TODO: Adjust algorithm to use lists instead of strings because string concatenation is O(n).
 def extract_note_encoding(xml):
-    """Function to extract notewise encoding. This version specifies when notes are stopped."""
+    """Function to extract notewise encoding. This version specifies when notes are stopped.
+       An example of a notewise sequences is '12 24 step step step stop12 stop24'."""
+    # First extract chordwise sequence.
     chord_sequence = extract_chord_encodingv2(xml)
-    chord_sequence = chord_sequence.split(" ")
     note_sequence = ""
-
+    
+    # Use chordwise sequences to generate notewise sequence.
+    # Use a set to keep track of all notes that are currently sounding.
     current_notes = set()
     for chord in chord_sequence:
         stopped_notes = set()
         for note_index in current_notes:
+            # If a note that was previously sounding is now a 0, it has stopped playing.
+            # Append a command that signifies this note has stopped playing.
             if chord[note_index] == "0":
                 stopped_notes.add(note_index)
                 note_sequence = "{} stop{}".format(note_sequence, str(note_index))
+        # Remove all stopped notes from currently sounding notes.
         for note_index in stopped_notes:
             current_notes.remove(note_index)
+        # For all notes that are have just started sounding at this timestep, append a command that signifies that the note has started playing.
         for i, char in enumerate(chord):
             if char == "1":
                 note_sequence = "{} {}".format(note_sequence, str(i))
@@ -181,6 +203,8 @@ def notes_to_mxml(part1, part2):
 
 # Sometimes words like 'stop41stop41stop41' are generated.
 def convert_seq_to_xml(sequence, step_size=(1/8), max_length=2):
+    """This function is does the exact opposite of the function extract_note_encoding.
+       It is used to convert the generated sequence to musicxml format."""
     sequence = sequence.split(" ")
     notes = list()
     current_notes = list()
