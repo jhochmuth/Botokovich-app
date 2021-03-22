@@ -1,0 +1,17 @@
+name: botokovich-app
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - pip=19.1=py37_0
+  - pytorch-cpu=1.0.1=py37h0a44026_0
+  - torchvision-cpu=0.2.2=py_3
+  - uvicorn=0.6.1=py37_0
+  - pip:
+    - fastai==1.0.52
+    - fastapi==0.58.0
+    - flat-api==0.7.0
+    - music21==5.5.0
+    - spacy==2.1.4
+    - torchtext==0.3.1
