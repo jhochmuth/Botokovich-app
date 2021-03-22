@@ -1,6 +1,5 @@
 # Botokovich
-A project to investigate the applicability of deep learning to music generation.
-Please note: this project is still in an early experimental stage.
+A project to create a web app capable of generating music based on seed music that is input by the user.
 
 Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi of the following example.
 
