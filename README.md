@@ -5,8 +5,6 @@ Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi 
 
 ![Generated music img](https://github.com/jhochmuth/Botokovich/blob/master/data/generated_examples/exemplary_examples/chorales/sheetmusic_300hs_10bs_001lr_40e_0.png)
 
-This app was bootstrapped with [this](https://github.com/rcdilorenzo/ecce/tree/master/ecce).
-
 ## Usage
 Clone the repository and open two terminal windows.
 
@@ -19,3 +17,6 @@ To start the client:
 1. In the other terminal window, cd into the client folder.
 2. Install frontend dependencies: `npm install`.
 3. Run the client: `npm start`.
+
+
+This app was bootstrapped with [this](https://github.com/rcdilorenzo/ecce/tree/master/ecce).
