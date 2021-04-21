@@ -1,6 +1,6 @@
 from fastai.text import *
 
-from fastapi import Body, FastAPI
+from fastapi import Body, FastAPI, HTTPException
 
 import flat_api
 from flat_api.rest import ApiException
@@ -51,24 +51,27 @@ def generate_music(xml: str = Body(...), length: int = Body(...)):
        Converts musicxml-based user input to a notewise encoding.
        Then uses this to seed the trained neural network.
        Finally converts the generated sequence to musicxml and sends this to the client."""
-    seq = extract_note_encoding(xml)
-    generated_seq = generate(learner, seq, length)
-    generated_mus = convert_seq_to_xml(generated_seq)
-    return {'data': generated_mus}
+    try:
+        seq = extract_note_encoding(xml)
+        generated_seq = generate(learner, seq, length)
+        generated_mus = convert_seq_to_xml(generated_seq)
+        return {'data': generated_mus}
+    except:
+        raise HTTPException(status_code=400, detail="Bad request")
 
 
 def extract_chord_encodingv2(xml, steps_per_quarter=12):
     """Uses music21 library to extract chords at each timestep."""
     stream = music21.converter.parse(xml, format='musicxml')
-    
+
     # First create the list of timesteps which contains information about every note that is playing at that moment.
     time_steps = [list() for _ in range(int(stream.duration.quarterLength * steps_per_quarter))]
-    
+
     # Iterate over all chords and notes.
     for element in stream.recurse(classFilter=('Chord', 'Note')):
         time = int(element.offset * steps_per_quarter)
         duration_steps = int(element.duration.quarterLength * steps_per_quarter)
-        
+
         # Notes and chords must be treated differently.
         if isinstance(element, music21.note.Note):
             for duration in range(duration_steps):
@@ -117,7 +120,7 @@ def extract_note_encoding(xml):
     # First extract chordwise sequence.
     chord_sequence = extract_chord_encodingv2(xml)
     note_sequence = ""
-    
+
     # Use chordwise sequences to generate notewise sequence.
     # Use a set to keep track of all notes that are currently sounding.
     current_notes = set()

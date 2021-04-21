@@ -8,6 +8,8 @@ Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi 
 ## Usage
 Clone the repository and open two terminal windows.
 
+Note: you may be required to create a Flat.io account 
+
 To start the server:
 1. Create the virtual environment: `conda env create -f environment.yml`.
 2. Activate the virtual environment: `conda activate botokovich-app`.
