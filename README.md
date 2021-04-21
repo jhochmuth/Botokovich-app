@@ -19,3 +19,6 @@ To start the client:
 1. In the other terminal window, cd into the client folder.
 2. Install frontend dependencies: `npm install`.
 3. Run the client: `npm start`.
+
+
+This app was bootstrapped with [this](https://github.com/rcdilorenzo/ecce/tree/master/ecce).
