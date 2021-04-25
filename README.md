@@ -3,7 +3,7 @@ A project to create a web app capable of generating music based on seed music th
 
 Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi of the following example.
 
-![App img](https://github.com/jhochmuth/botokovich-app/data/botokovich-app.png)
+![App img](https://github.com/jhochmuth/Botokovich-app/blob/master/data/botokovich-app.png)
 
 ![Generated music img](https://github.com/jhochmuth/Botokovich/blob/master/data/generated_examples/exemplary_examples/chorales/sheetmusic_300hs_10bs_001lr_40e_0.png)
 
