@@ -5,7 +5,7 @@ A project to create a web app capable of generating music based on seed music th
 
 Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi of the following example.
 
-![Generated music img](https://bl3301files.storage.live.com/y4m9dDuqR0Tnr7JX3EZ7R4ABeTXmpzggQn6fzQGSixe0_e57WmsA7QIULCtdAcBTaQNb7FOg4WQz3MXt3Q5FD6WmJkZKJFmqRImfXQDyCLrOpxxi4jaKVFkWp1zUTbxRqZGNX4LH7Hrmxi26MI_gINAiHE64dSXKDe1vF-RgacU1aqL43DwsWQAhSmZVgLoaAMS?width=2876&height=934&cropmode=none)
+![Generated music img](https://bl3301files.storage.live.com/y4m7LLIJywLWPSaXxFXlOJScGuXiyJCe44ZjgfZkAOnJGwE7rFIk9q4LBp2JRolVWwBuZvuxjAAUMTk5KdUQbOwLH7Ye5nReA81y0cofZF4nOxtGReGFFsk9rqqZ49ln2xvN2F7agUiFWqd2DOmR_Z5W4HvmB7ESCqzyrae6_v4EuhT471vjLslN3U3zZ5tKKsz?width=840&height=518&cropmode=none)
 
 ## Usage
 Clone the repository and open two terminal windows.
