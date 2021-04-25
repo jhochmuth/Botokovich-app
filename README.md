@@ -1,11 +1,11 @@
 # Botokovich
 A project to create a web app capable of generating music based on seed music that is input by the user.
 
+![App img](https://bl3301files.storage.live.com/y4m9dDuqR0Tnr7JX3EZ7R4ABeTXmpzggQn6fzQGSixe0_e57WmsA7QIULCtdAcBTaQNb7FOg4WQz3MXt3Q5FD6WmJkZKJFmqRImfXQDyCLrOpxxi4jaKVFkWp1zUTbxRqZGNX4LH7Hrmxi26MI_gINAiHE64dSXKDe1vF-RgacU1aqL43DwsWQAhSmZVgLoaAMS?width=2876&height=934&cropmode=none)
+
 Visit this [link](https://www.youtube.com/watch?v=HFZNpdqYKnU) to hear the midi of the following example.
 
-![App img](https://github.com/jhochmuth/Botokovich-app/blob/master/data/botokovich-app.png)
-
-![Generated music img](https://github.com/jhochmuth/Botokovich/blob/master/data/generated_examples/exemplary_examples/chorales/sheetmusic_300hs_10bs_001lr_40e_0.png)
+![Generated music img](https://bl3301files.storage.live.com/y4m9dDuqR0Tnr7JX3EZ7R4ABeTXmpzggQn6fzQGSixe0_e57WmsA7QIULCtdAcBTaQNb7FOg4WQz3MXt3Q5FD6WmJkZKJFmqRImfXQDyCLrOpxxi4jaKVFkWp1zUTbxRqZGNX4LH7Hrmxi26MI_gINAiHE64dSXKDe1vF-RgacU1aqL43DwsWQAhSmZVgLoaAMS?width=2876&height=934&cropmode=none)
 
 ## Usage
 Clone the repository and open two terminal windows.
